@@ -20,13 +20,23 @@ function App() {
   const [chunks, setChunks] = useState([]);
   const [currentChunkIndex, setCurrentChunkIndex] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isRepeatMode, setIsRepeatMode] = useState(false);
+  const [repeatWords, setRepeatWords] = useState([]);
+  const [score, setScore] = useState(0);
 
-  // Загрузка последнего просмотренного блока из лога
+  // Загрузка последнего просмотренного блока и счётчика очков из лога
   useEffect(() => {
     if (window.electron && window.electron.getLastChunkIndex) {
       window.electron.getLastChunkIndex().then((index) => {
         if (index !== undefined) {
           setCurrentChunkIndex(index);
+        }
+      });
+    }
+    if (window.electron && window.electron.getScore) {
+      window.electron.getScore().then((savedScore) => {
+        if (savedScore !== undefined) {
+          setScore(savedScore);
         }
       });
     }
@@ -46,6 +56,13 @@ function App() {
   useEffect(() => {
     document.body.style.backgroundColor = isDarkMode ? "#1E1E1E" : bgColor;
   }, [isDarkMode, bgColor]);
+
+  // Загрузка слов для режима повтора
+  useEffect(() => {
+    if (isRepeatMode) {
+      loadRepeatWords();
+    }
+  }, [isRepeatMode]);
 
   const handleWordClick = async (word) => {
     const translation = await fetchTranslation(word);
@@ -115,6 +132,53 @@ function App() {
     return ((currentChunkIndex + 1) / chunks.length) * 100;
   };
 
+  // Загрузка слов для режима повтора
+  const loadRepeatWords = () => {
+    const words = translations.slice(0, 10).map((item) => ({
+      word: item.word,
+      correctTranslation: item.translation,
+      incorrectTranslations: getRandomTranslations(item.translation),
+      correctCount: 0,
+    }));
+    setRepeatWords(words);
+  };
+
+  // Получение случайных переводов для неверных вариантов
+  const getRandomTranslations = (correctTranslation) => {
+    const randomWords = translations
+      .filter((item) => item.translation !== correctTranslation)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 2)
+      .map((item) => item.translation);
+    return randomWords;
+  };
+
+  // Обработчик выбора перевода в режиме повтора
+  const handleTranslationChoice = (word, chosenTranslation, correctTranslation) => {
+    const updatedWords = repeatWords.filter((w) => w.word !== word);
+    setRepeatWords(updatedWords);
+
+    if (chosenTranslation === correctTranslation) {
+      setScore((prev) => prev + 1);
+      if (window.electron && window.electron.saveScore) {
+        window.electron.saveScore(score + 1);
+      }
+      const updatedTranslations = translations.map((t) =>
+        t.word === word ? { ...t, correctCount: (t.correctCount || 0) + 1 } : t
+      );
+      setTranslations(updatedTranslations);
+    } else {
+      setScore((prev) => prev - 1);
+      if (window.electron && window.electron.saveScore) {
+        window.electron.saveScore(score - 1);
+      }
+    }
+
+    if (updatedWords.length === 0) {
+      loadRepeatWords();
+    }
+  };
+
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", padding: "10px", backgroundColor: bgColor }}>
       {/* Верхний ряд кнопок */}
@@ -143,6 +207,10 @@ function App() {
           <button onClick={() => setIsDarkMode(!isDarkMode)} style={buttonStyle}>
             {isDarkMode ? "Светлая тема" : "Тёмная тема"}
           </button>
+          <button onClick={() => setIsRepeatMode(!isRepeatMode)} style={buttonStyle}>
+            {isRepeatMode ? "Режим чтения" : "Режим повтора"}
+          </button>
+          {isRepeatMode && <span style={{ fontSize: "18px", color: isDarkMode ? "#FFFFFF" : "#000000" }}>Очки: {score}</span>}
         </div>
         {/* Полоска прогресса */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "10px" }}>
@@ -181,9 +249,29 @@ function App() {
 
       {/* Основной контент */}
       <div style={{ marginTop: "150px", flex: 1, display: "flex", flexDirection: "row", height: "calc(100% - 60px)" }}>
-        <div style={{ flex: 2, padding: 10, overflowY: "auto", marginRight: "300px", backgroundColor: isDarkMode ? "#2D2D2D" : bgColor, borderRadius: "10px", boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)" }}>
-          <TextInput text={text} setText={setText} onWordClick={handleWordClick} fontSize={fontSize} isDarkMode={isDarkMode} />
-        </div>
+        {isRepeatMode ? (
+          <div style={{ flex: 2, padding: 10, overflowY: "auto", marginRight: "300px", backgroundColor: isDarkMode ? "#2D2D2D" : bgColor, borderRadius: "10px", boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)" }}>
+            <h3 style={{ color: isDarkMode ? "#FFFFFF" : "#000000" }}>Режим повтора</h3>
+            {repeatWords.map((word, index) => (
+              <div key={index} style={{ marginBottom: "10px" }}>
+                <p style={{ color: isDarkMode ? "#FFFFFF" : "#000000" }}>{word.word}</p>
+                {[word.correctTranslation, ...word.incorrectTranslations].sort(() => Math.random() - 0.5).map((translation, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleTranslationChoice(word.word, translation, word.correctTranslation)}
+                    style={{ ...buttonStyle, marginRight: "10px" }}
+                  >
+                    {translation}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ flex: 2, padding: 10, overflowY: "auto", marginRight: "300px", backgroundColor: isDarkMode ? "#2D2D2D" : bgColor, borderRadius: "10px", boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)" }}>
+            <TextInput text={text} setText={setText} onWordClick={handleWordClick} fontSize={fontSize} isDarkMode={isDarkMode} />
+          </div>
+        )}
         <TranslationPanel translations={translations} bgColor={bgColor} isDarkMode={isDarkMode} />
       </div>
 

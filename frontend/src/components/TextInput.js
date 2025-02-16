@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 function TextInput({ text, setText, onWordClick, fontSize, isDarkMode }) {
   const [hoveredWord, setHoveredWord] = useState(null);
@@ -6,8 +6,10 @@ function TextInput({ text, setText, onWordClick, fontSize, isDarkMode }) {
 
   const handleWordClick = async (word, event) => {
     const translation = await onWordClick(word);
-    setHoveredWord(translation);
-    setTranslationPosition({ x: event.clientX, y: event.clientY });
+    setTimeout(() => {
+      setHoveredWord(translation);
+      setTranslationPosition({ x: event.clientX, y: event.clientY });
+    }, 1000); // Задержка в 1 секунду
   };
 
   const processText = (text) => {
