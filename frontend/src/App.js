@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import TextInput from "./components/TextInput";
 import TranslationPanel from "./components/TranslationPanel";
 import Modal from "react-modal";
@@ -15,9 +15,32 @@ function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [fontSize, setFontSize] = useState(16);
   const [bgColor, setBgColor] = useState("#FFF8DC");
-  const [isLoading, setIsLoading] = useState(false); // Состояние загрузки
-  const [currentChunk, setCurrentChunk] = useState(0); // Текущий фрагмент текста
+  const [isLoading, setIsLoading] = useState(false);
   const [fullText, setFullText] = useState(""); // Полный текст книги
+  const [chunks, setChunks] = useState([]); // Массив блоков текста
+  const [currentChunkIndex, setCurrentChunkIndex] = useState(0); // Индекс текущего блока
+
+  // Загрузка последнего просмотренного блока из лога
+  useEffect(() => {
+    if (window.electron && window.electron.getLastChunkIndex) {
+      window.electron.getLastChunkIndex().then((index) => {
+        if (index !== undefined) {
+          setCurrentChunkIndex(index);
+        }
+      });
+    }
+  }, []);
+
+  // Обновление текста при изменении текущего блока
+  useEffect(() => {
+    if (chunks.length > 0) {
+      setText(chunks[currentChunkIndex]);
+      // Сохраняем текущий блок в лог
+      if (window.electron && window.electron.saveLastChunkIndex) {
+        window.electron.saveLastChunkIndex(currentChunkIndex);
+      }
+    }
+  }, [currentChunkIndex, chunks]);
 
   const handleWordClick = async (word) => {
     const translation = await fetchTranslation(word);
@@ -42,14 +65,21 @@ function App() {
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (file && file.type === "text/plain") {
-      setIsLoading(true); // Начало загрузки
+      setIsLoading(true);
       const reader = new FileReader();
       reader.onload = async (e) => {
         const text = e.target.result;
-        setFullText(text); // Сохраняем весь текст
-        setText(text.slice(0, 50000)); // Отображаем первые 50 000 символов
-        setCurrentChunk(0); // Сбрасываем текущий фрагмент
-        setIsLoading(false); // Загрузка завершена
+        setFullText(text);
+
+        // Разбиваем текст на блоки по 50 000 символов
+        const chunkSize = 50000;
+        const chunks = [];
+        for (let i = 0; i < text.length; i += chunkSize) {
+          chunks.push(text.slice(i, i + chunkSize));
+        }
+        setChunks(chunks);
+        setCurrentChunkIndex(0); // Начинаем с первого блока
+        setIsLoading(false);
 
         // Сохраняем книгу в папку library
         if (window.electron && window.electron.saveBook) {
@@ -62,13 +92,11 @@ function App() {
     }
   };
 
-  // Функция для загрузки следующего фрагмента текста
-  const loadNextChunk = () => {
-    const nextChunk = currentChunk + 1;
-    const start = nextChunk * 50000;
-    const end = start + 50000;
-    setText(fullText.slice(0, end)); // Добавляем следующий фрагмент
-    setCurrentChunk(nextChunk);
+  // Функция для перехода к другому блоку
+  const goToChunk = (index) => {
+    if (index >= 0 && index < chunks.length) {
+      setCurrentChunkIndex(index);
+    }
   };
 
   return (
@@ -84,7 +112,6 @@ function App() {
           onChange={(e) => setBgColor(e.target.value)}
           style={{ width: "40px", height: "30px", border: "none", cursor: "pointer" }}
         />
-        {/* Кнопка для загрузки файла */}
         <input
           type="file"
           accept=".txt"
@@ -103,11 +130,41 @@ function App() {
       <div style={{ display: "flex", flex: 1, flexDirection: "row", height: "calc(100% - 60px)" }}>
         <div style={{ flex: 2, padding: 10, overflowY: "auto", marginRight: "300px" }}>
           <TextInput text={text} setText={setText} onWordClick={handleWordClick} fontSize={fontSize} />
-          {/* Кнопка для загрузки следующего фрагмента */}
-          {fullText.length > text.length && (
-            <button onClick={loadNextChunk} style={buttonStyle}>
-              Загрузить ещё
-            </button>
+          {/* Навигация по блокам */}
+          {chunks.length > 0 && (
+            <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+              <button
+                onClick={() => goToChunk(currentChunkIndex - 3)}
+                disabled={currentChunkIndex - 3 < 0}
+                style={buttonStyle}
+              >
+                -3
+              </button>
+              <button
+                onClick={() => goToChunk(currentChunkIndex - 1)}
+                disabled={currentChunkIndex === 0}
+                style={buttonStyle}
+              >
+                Назад
+              </button>
+              <span style={{ fontSize: "16px", lineHeight: "30px" }}>
+                Блок {currentChunkIndex + 1} из {chunks.length}
+              </span>
+              <button
+                onClick={() => goToChunk(currentChunkIndex + 1)}
+                disabled={currentChunkIndex === chunks.length - 1}
+                style={buttonStyle}
+              >
+                Вперёд
+              </button>
+              <button
+                onClick={() => goToChunk(currentChunkIndex + 3)}
+                disabled={currentChunkIndex + 3 >= chunks.length}
+                style={buttonStyle}
+              >
+                +3
+              </button>
+            </div>
           )}
         </div>
         <TranslationPanel translations={translations} bgColor={bgColor} />
