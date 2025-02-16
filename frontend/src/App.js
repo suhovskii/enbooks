@@ -23,6 +23,7 @@ function App() {
   const [isRepeatMode, setIsRepeatMode] = useState(false);
   const [repeatWords, setRepeatWords] = useState([]);
   const [score, setScore] = useState(0);
+  const [notification, setNotification] = useState(null); // Уведомление
 
   // Загрузка последнего просмотренного блока и счётчика очков из лога
   useEffect(() => {
@@ -134,12 +135,15 @@ function App() {
 
   // Загрузка слов для режима повтора
   const loadRepeatWords = () => {
-    const words = translations.slice(0, 10).map((item) => ({
-      word: item.word,
-      correctTranslation: item.translation,
-      incorrectTranslations: getRandomTranslations(item.translation),
-      correctCount: 0,
-    }));
+    const words = translations
+      .filter((item) => !item.lastShown || Date.now() - item.lastShown > 86400000) // Фильтр по времени
+      .slice(0, 10)
+      .map((item) => ({
+        word: item.word,
+        correctTranslation: item.translation,
+        incorrectTranslations: getRandomTranslations(item.translation),
+        correctCount: item.correctCount || 0,
+      }));
     setRepeatWords(words);
   };
 
@@ -155,16 +159,23 @@ function App() {
 
   // Обработчик выбора перевода в режиме повтора
   const handleTranslationChoice = (word, chosenTranslation, correctTranslation) => {
+    const isCorrect = chosenTranslation === correctTranslation;
+    setNotification(isCorrect ? "Правильно! +1 очко" : "Неправильно! -1 очко");
+
+    setTimeout(() => {
+      setNotification(null);
+    }, 2000);
+
     const updatedWords = repeatWords.filter((w) => w.word !== word);
     setRepeatWords(updatedWords);
 
-    if (chosenTranslation === correctTranslation) {
+    if (isCorrect) {
       setScore((prev) => prev + 1);
       if (window.electron && window.electron.saveScore) {
         window.electron.saveScore(score + 1);
       }
       const updatedTranslations = translations.map((t) =>
-        t.word === word ? { ...t, correctCount: (t.correctCount || 0) + 1 } : t
+        t.word === word ? { ...t, correctCount: (t.correctCount || 0) + 1, lastShown: Date.now() } : t
       );
       setTranslations(updatedTranslations);
     } else {
@@ -246,6 +257,26 @@ function App() {
           </button>
         </div>
       </div>
+
+      {/* Уведомление */}
+      {notification && (
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            backgroundColor: notification.includes("Правильно") ? "#4CAF50" : "#F44336",
+            color: "#FFFFFF",
+            padding: "10px 20px",
+            borderRadius: "5px",
+            zIndex: 1000,
+            boxShadow: "0 2px 5px rgba(0, 0, 0, 0.2)",
+          }}
+        >
+          {notification}
+        </div>
+      )}
 
       {/* Основной контент */}
       <div style={{ marginTop: "150px", flex: 1, display: "flex", flexDirection: "row", height: "calc(100% - 60px)" }}>
