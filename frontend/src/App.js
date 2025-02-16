@@ -16,9 +16,9 @@ function App() {
   const [fontSize, setFontSize] = useState(16);
   const [bgColor, setBgColor] = useState("#FFF8DC");
   const [isLoading, setIsLoading] = useState(false);
-  const [fullText, setFullText] = useState(""); // Полный текст книги
-  const [chunks, setChunks] = useState([]); // Массив блоков текста
-  const [currentChunkIndex, setCurrentChunkIndex] = useState(0); // Индекс текущего блока
+  const [fullText, setFullText] = useState("");
+  const [chunks, setChunks] = useState([]);
+  const [currentChunkIndex, setCurrentChunkIndex] = useState(0);
 
   // Загрузка последнего просмотренного блока из лога
   useEffect(() => {
@@ -99,6 +99,17 @@ function App() {
     }
   };
 
+  // Функция для перехода по проценту
+  const goToPercentage = (percentage) => {
+    const index = Math.floor((percentage / 100) * (chunks.length - 1));
+    setCurrentChunkIndex(index);
+  };
+
+  // Вычисление текущего процента прочитанного
+  const getCurrentPercentage = () => {
+    return ((currentChunkIndex + 1) / chunks.length) * 100;
+  };
+
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", padding: "10px", backgroundColor: bgColor }}>
       <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
@@ -132,38 +143,63 @@ function App() {
           <TextInput text={text} setText={setText} onWordClick={handleWordClick} fontSize={fontSize} />
           {/* Навигация по блокам */}
           {chunks.length > 0 && (
-            <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-              <button
-                onClick={() => goToChunk(currentChunkIndex - 3)}
-                disabled={currentChunkIndex - 3 < 0}
-                style={buttonStyle}
-              >
-                -3
-              </button>
-              <button
-                onClick={() => goToChunk(currentChunkIndex - 1)}
-                disabled={currentChunkIndex === 0}
-                style={buttonStyle}
-              >
-                Назад
-              </button>
-              <span style={{ fontSize: "16px", lineHeight: "30px" }}>
-                Блок {currentChunkIndex + 1} из {chunks.length}
-              </span>
-              <button
-                onClick={() => goToChunk(currentChunkIndex + 1)}
-                disabled={currentChunkIndex === chunks.length - 1}
-                style={buttonStyle}
-              >
-                Вперёд
-              </button>
-              <button
-                onClick={() => goToChunk(currentChunkIndex + 3)}
-                disabled={currentChunkIndex + 3 >= chunks.length}
-                style={buttonStyle}
-              >
-                +3
-              </button>
+            <div style={{ marginTop: "10px" }}>
+              <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+                <button
+                  onClick={() => goToChunk(currentChunkIndex - 3)}
+                  disabled={currentChunkIndex - 3 < 0}
+                  style={buttonStyle}
+                >
+                  -3
+                </button>
+                <button
+                  onClick={() => goToChunk(currentChunkIndex - 2)}
+                  disabled={currentChunkIndex - 2 < 0}
+                  style={buttonStyle}
+                >
+                  -2
+                </button>
+                <button
+                  onClick={() => goToChunk(currentChunkIndex - 1)}
+                  disabled={currentChunkIndex === 0}
+                  style={buttonStyle}
+                >
+                  -1
+                </button>
+                <button
+                  onClick={() => goToChunk(currentChunkIndex + 1)}
+                  disabled={currentChunkIndex === chunks.length - 1}
+                  style={buttonStyle}
+                >
+                  +1
+                </button>
+                <button
+                  onClick={() => goToChunk(currentChunkIndex + 2)}
+                  disabled={currentChunkIndex + 2 >= chunks.length}
+                  style={buttonStyle}
+                >
+                  +2
+                </button>
+                <button
+                  onClick={() => goToChunk(currentChunkIndex + 3)}
+                  disabled={currentChunkIndex + 3 >= chunks.length}
+                  style={buttonStyle}
+                >
+                  +3
+                </button>
+              </div>
+              {/* Полоска прогресса */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={getCurrentPercentage()}
+                  onChange={(e) => goToPercentage(e.target.value)}
+                  style={{ flex: 1, cursor: "pointer" }}
+                />
+                <span style={{ fontSize: "16px" }}>{Math.round(getCurrentPercentage())}%</span>
+              </div>
             </div>
           )}
         </div>
