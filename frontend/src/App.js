@@ -19,9 +19,14 @@ function App() {
   const handleWordClick = async (word) => {
     const translation = await fetchTranslation(word);
     setTranslations((prev) => {
-      const newTranslations = [ { word, translation }, ...prev ];
+      const newTranslations = [{ word, translation }, ...prev];
       return newTranslations.slice(0, 15); 
     });
+
+    // Отправляем перевод в main процесс для сохранения в CSV
+    if (window.electron && window.electron.saveTranslation) {
+      window.electron.saveTranslation(word, translation);
+    }
   };
 
   const openTextInputModal = () => setIsModalOpen(true);
