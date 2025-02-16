@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import TextInput from "./components/TextInput";
+import Header from "./components/Header";
+import ReadingMode from "./components/ReadingMode";
+import RepeatMode from "./components/RepeatMode";
 import TranslationPanel from "./components/TranslationPanel";
 import Modal from "react-modal";
 
@@ -23,7 +25,7 @@ function App() {
   const [isRepeatMode, setIsRepeatMode] = useState(false);
   const [repeatWords, setRepeatWords] = useState([]);
   const [score, setScore] = useState(0);
-  const [notification, setNotification] = useState(null); // Уведомление
+  const [notification, setNotification] = useState(null);
 
   // Загрузка последнего просмотренного блока и счётчика очков из лога
   useEffect(() => {
@@ -193,70 +195,25 @@ function App() {
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", padding: "10px", backgroundColor: bgColor }}>
       {/* Верхний ряд кнопок */}
-      <div style={{ position: "fixed", top: 0, left: 0, right: 0, backgroundColor: isDarkMode ? "#2D2D2D" : bgColor, padding: "10px", zIndex: 1000, boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <button onClick={openTextInputModal} style={buttonStyle}>Ввести текст</button>
-          <button onClick={decreaseFontSize} style={buttonStyle}>−</button>
-          <span style={{ fontSize: "18px", color: isDarkMode ? "#FFFFFF" : "#000000" }}>{fontSize}px</span>
-          <button onClick={increaseFontSize} style={buttonStyle}>+</button>
-          <input
-            type="color"
-            value={bgColor}
-            onChange={(e) => setBgColor(e.target.value)}
-            style={{ width: "40px", height: "30px", border: "none", cursor: "pointer" }}
-          />
-          <input
-            type="file"
-            accept=".txt"
-            onChange={handleFileUpload}
-            style={{ display: "none" }}
-            id="file-upload"
-          />
-          <label htmlFor="file-upload" style={buttonStyle}>
-            Загрузить книгу
-          </label>
-          <button onClick={() => setIsDarkMode(!isDarkMode)} style={buttonStyle}>
-            {isDarkMode ? "Светлая тема" : "Тёмная тема"}
-          </button>
-          <button onClick={() => setIsRepeatMode(!isRepeatMode)} style={buttonStyle}>
-            {isRepeatMode ? "Режим чтения" : "Режим повтора"}
-          </button>
-          {isRepeatMode && <span style={{ fontSize: "18px", color: isDarkMode ? "#FFFFFF" : "#000000" }}>Очки: {score}</span>}
-        </div>
-        {/* Полоска прогресса */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "10px" }}>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={getCurrentPercentage()}
-            onChange={(e) => goToPercentage(e.target.value)}
-            style={{ flex: 1, cursor: "pointer" }}
-          />
-          <span style={{ fontSize: "16px", color: isDarkMode ? "#FFFFFF" : "#000000" }}>{Math.round(getCurrentPercentage())}%</span>
-        </div>
-        {/* Кнопки перехода между блоками */}
-        <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-          <button onClick={() => goToChunk(currentChunkIndex - 3)} disabled={currentChunkIndex - 3 < 0} style={buttonStyle}>
-            -3
-          </button>
-          <button onClick={() => goToChunk(currentChunkIndex - 2)} disabled={currentChunkIndex - 2 < 0} style={buttonStyle}>
-            -2
-          </button>
-          <button onClick={() => goToChunk(currentChunkIndex - 1)} disabled={currentChunkIndex === 0} style={buttonStyle}>
-            -1
-          </button>
-          <button onClick={() => goToChunk(currentChunkIndex + 1)} disabled={currentChunkIndex === chunks.length - 1} style={buttonStyle}>
-            +1
-          </button>
-          <button onClick={() => goToChunk(currentChunkIndex + 2)} disabled={currentChunkIndex + 2 >= chunks.length} style={buttonStyle}>
-            +2
-          </button>
-          <button onClick={() => goToChunk(currentChunkIndex + 3)} disabled={currentChunkIndex + 3 >= chunks.length} style={buttonStyle}>
-            +3
-          </button>
-        </div>
-      </div>
+      <Header
+        openTextInputModal={openTextInputModal}
+        decreaseFontSize={decreaseFontSize}
+        increaseFontSize={increaseFontSize}
+        fontSize={fontSize}
+        bgColor={bgColor}
+        setBgColor={setBgColor}
+        handleFileUpload={handleFileUpload}
+        isDarkMode={isDarkMode}
+        setIsDarkMode={setIsDarkMode}
+        isRepeatMode={isRepeatMode}
+        setIsRepeatMode={setIsRepeatMode}
+        score={score}
+        getCurrentPercentage={getCurrentPercentage}
+        goToPercentage={goToPercentage}
+        goToChunk={goToChunk}
+        currentChunkIndex={currentChunkIndex}
+        chunks={chunks}
+      />
 
       {/* Уведомление */}
       {notification && (
@@ -281,27 +238,21 @@ function App() {
       {/* Основной контент */}
       <div style={{ marginTop: "150px", flex: 1, display: "flex", flexDirection: "row", height: "calc(100% - 60px)" }}>
         {isRepeatMode ? (
-          <div style={{ flex: 2, padding: 10, overflowY: "auto", marginRight: "300px", backgroundColor: isDarkMode ? "#2D2D2D" : bgColor, borderRadius: "10px", boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)" }}>
-            <h3 style={{ color: isDarkMode ? "#FFFFFF" : "#000000" }}>Режим повтора</h3>
-            {repeatWords.map((word, index) => (
-              <div key={index} style={{ marginBottom: "10px" }}>
-                <p style={{ color: isDarkMode ? "#FFFFFF" : "#000000" }}>{word.word}</p>
-                {[word.correctTranslation, ...word.incorrectTranslations].sort(() => Math.random() - 0.5).map((translation, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleTranslationChoice(word.word, translation, word.correctTranslation)}
-                    style={{ ...buttonStyle, marginRight: "10px" }}
-                  >
-                    {translation}
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
+          <RepeatMode
+            repeatWords={repeatWords}
+            handleTranslationChoice={handleTranslationChoice}
+            bgColor={bgColor}
+            isDarkMode={isDarkMode}
+          />
         ) : (
-          <div style={{ flex: 2, padding: 10, overflowY: "auto", marginRight: "300px", backgroundColor: isDarkMode ? "#2D2D2D" : bgColor, borderRadius: "10px", boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)" }}>
-            <TextInput text={text} setText={setText} onWordClick={handleWordClick} fontSize={fontSize} isDarkMode={isDarkMode} />
-          </div>
+          <ReadingMode
+            text={text}
+            setText={setText}
+            handleWordClick={handleWordClick}
+            fontSize={fontSize}
+            isDarkMode={isDarkMode}
+            bgColor={bgColor}
+          />
         )}
         <TranslationPanel translations={translations} bgColor={bgColor} isDarkMode={isDarkMode} />
       </div>
@@ -324,16 +275,6 @@ function App() {
     </div>
   );
 }
-
-const buttonStyle = {
-  padding: "8px 16px",
-  fontSize: "16px",
-  cursor: "pointer",
-  border: "1px solid #ccc",
-  borderRadius: "5px",
-  backgroundColor: "#f0f0f0",
-  transition: "background-color 0.3s, transform 0.2s",
-};
 
 const modalStyle = {
   overlay: { backgroundColor: "rgba(0, 0, 0, 0.5)" },
