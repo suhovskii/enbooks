@@ -1,7 +1,6 @@
 import React from "react";
 
 function TextInput({ text, setText, onWordClick, fontSize }) {
-
   const handleWordClick = (word) => {
     if (onWordClick) {
       onWordClick(word);
@@ -17,7 +16,7 @@ function TextInput({ text, setText, onWordClick, fontSize }) {
           color: "black",
           userSelect: "none",
           fontSize: `${fontSize}px`,
-          lineHeight: "1.2",  // Увеличенный межстрочный интервал
+          lineHeight: "1.2",
         }}
         onClick={() => handleWordClick(word)}
       >

@@ -12,7 +12,7 @@ function TranslationPanel({ translations, bgColor }) {
         overflowY: "auto",
         borderLeft: "1px solid #ddd",
         padding: "10px",
-        backgroundColor: bgColor, // Совпадает с основным фоном
+        backgroundColor: bgColor,
       }}
     >
       <h3>Переводы</h3>
