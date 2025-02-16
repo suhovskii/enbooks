@@ -1,21 +1,22 @@
 import React from "react";
 
-function TranslationPanel({ translations }) {
+function TranslationPanel({ translations, bgColor }) {
   return (
     <div
       style={{
-        flex: 1,
-        padding: "10px",
-        borderLeft: "1px solid #ddd",
+        position: "fixed",
+        top: "0",
+        right: "0",
+        width: "300px",
+        maxHeight: "calc(100vh - 60px)",
         overflowY: "auto",
-        minWidth: "180px",  // Минимальная ширина 6 см (приблизительно 180px)
-        resize: "horizontal",  // Позволяет изменять ширину панели
-        overflow: "auto",
-        position: "relative",
+        borderLeft: "1px solid #ddd",
+        padding: "10px",
+        backgroundColor: bgColor, // Совпадает с основным фоном
       }}
     >
       <h3>Переводы</h3>
-      {translations.map((item, index) => (
+      {translations.slice(0, 15).map((item, index) => (
         <div key={index}>
           <p>
             <strong>{item.word}</strong>: {item.translation}

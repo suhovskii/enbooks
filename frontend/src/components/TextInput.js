@@ -1,23 +1,23 @@
-import React, { useState } from "react";
+import React from "react";
 
-function TextInput({ text, setText, onWordClick }) {
+function TextInput({ text, setText, onWordClick, fontSize }) {
 
   const handleWordClick = (word) => {
     if (onWordClick) {
-      onWordClick(word);  // Отправляем слово в родительский компонент
+      onWordClick(word);
     }
   };
 
-  // Функция для преобразования текста в элементы с кликабельными словами
   const processText = (text) => {
-    const words = text.split(" ");
-    return words.map((word, index) => (
+    return text.split(" ").map((word, index) => (
       <span
         key={index}
         style={{
           cursor: "pointer",
-          color: "blue",
-          userSelect: "none",  // Убираем постоянное выделение текста
+          color: "black",
+          userSelect: "none",
+          fontSize: `${fontSize}px`,
+          lineHeight: "1.2",  // Увеличенный межстрочный интервал
         }}
         onClick={() => handleWordClick(word)}
       >
